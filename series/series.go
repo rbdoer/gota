@@ -449,6 +449,67 @@ func (s Series) Compare(comparator Comparator, comparando interface{}) Series {
 	return Bools(bools)
 }
 
+func (s Series) CompareSeries(comparator Comparator, comp Series) Series {
+	if err := s.Err; err != nil {
+		return s
+	}
+	compareElements := func(a, b Element, c Comparator) (bool, error) {
+		var ret bool
+		switch c {
+		case Eq:
+			ret = a.Eq(b)
+		case Neq:
+			ret = a.Neq(b)
+		case Greater:
+			ret = a.Greater(b)
+		case GreaterEq:
+			ret = a.GreaterEq(b)
+		case Less:
+			ret = a.Less(b)
+		case LessEq:
+			ret = a.LessEq(b)
+		default:
+			return false, fmt.Errorf("unknown comparator: %v", c)
+		}
+		return ret, nil
+	}
+
+	bools := make([]bool, s.Len())
+
+	// Single element comparison
+	if comp.Len() == 1 {
+		for i := 0; i < s.Len(); i++ {
+			e := s.elements.Elem(i)
+			c, err := compareElements(e, comp.elements.Elem(0), comparator)
+			if err != nil {
+				s = s.Empty()
+				s.Err = err
+				return s
+			}
+			bools[i] = c
+		}
+		return Bools(bools)
+	}
+
+	// Multiple element comparison
+	if s.Len() != comp.Len() {
+		s := s.Empty()
+		s.Err = fmt.Errorf("can't compare: length mismatch")
+		return s
+	}
+	for i := 0; i < s.Len(); i++ {
+		e := s.elements.Elem(i)
+		c, err := compareElements(e, comp.elements.Elem(i), comparator)
+		if err != nil {
+			s = s.Empty()
+			s.Err = err
+			return s
+		}
+		bools[i] = c
+	}
+	return Bools(bools)
+}
+
 // Copy will return a copy of the Series.
 func (s Series) Copy() Series {
 	name := s.Name

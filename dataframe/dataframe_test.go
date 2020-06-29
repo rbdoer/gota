@@ -9,7 +9,7 @@ import (
 
 	"math"
 
-	"github.com/go-gota/gota/series"
+	"github.com/rbdoer/gota/series"
 )
 
 // compareFloats compares floating point values up to the number of digits specified.
@@ -685,6 +685,48 @@ func TestDataFrame_Filter(t *testing.T) {
 		//if err := checkAddrDf(a, b); err != nil {
 		//t.Error(err)
 		//}
+		// Check that the types are the same between both DataFrames
+		if !reflect.DeepEqual(tc.expDf.Types(), b.Types()) {
+			t.Errorf("Test: %d\nDifferent types:\nA:%v\nB:%v", i, tc.expDf.Types(), b.Types())
+		}
+		// Check that the colnames are the same between both DataFrames
+		if !reflect.DeepEqual(tc.expDf.Names(), b.Names()) {
+			t.Errorf("Test: %d\nDifferent colnames:\nA:%v\nB:%v", i, tc.expDf.Names(), b.Names())
+		}
+		// Check that the values are the same between both DataFrames
+		if !reflect.DeepEqual(tc.expDf.Records(), b.Records()) {
+			t.Errorf("Test: %d\nDifferent values:\nA:%v\nB:%v", i, tc.expDf.Records(), b.Records())
+		}
+	}
+}
+
+func TestDataFrame_CFilter(t *testing.T) {
+	a := New(
+		series.New([]string{"b", "a", "b", "c", "d"}, series.String, "COL.1"),
+		series.New([]int{1, 2, 4, 5, 4}, series.Int, "COL.2"),
+		series.New([]float64{3.0, 4.0, 5.3, 3.2, 1.2}, series.Float, "COL.3"),
+		series.New([]string{"b", "a", "c", "c", "d"}, series.String, "COL.4"),
+	)
+	table := []struct {
+		filters []CF
+		expDf   DataFrame
+	}{
+		{
+			[]CF{{"COL.1", "COL.4", series.Neq}},
+			New(
+				series.New([]string{"b"}, series.String, "COL.1"),
+				series.New([]int{4}, series.Int, "COL.2"),
+				series.New([]float64{5.3}, series.Float, "COL.3"),
+				series.New([]string{"c"}, series.String, "COL.4"),
+			),
+		},
+	}
+	for i, tc := range table {
+		b := a.CFilter(tc.filters...)
+
+		if b.Err != nil {
+			t.Errorf("Test: %d\nError:%v", i, b.Err)
+		}
 		// Check that the types are the same between both DataFrames
 		if !reflect.DeepEqual(tc.expDf.Types(), b.Types()) {
 			t.Errorf("Test: %d\nDifferent types:\nA:%v\nB:%v", i, tc.expDf.Types(), b.Types())

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/go-gota/gota/series"
+	"github.com/rbdoer/gota/series"
 )
 
 // DataFrame is a data structure designed for operating on table like data (Such
@@ -468,6 +468,13 @@ type F struct {
 	Comparando interface{}
 }
 
+// CF using for column compare
+type CF struct {
+	Colname    string
+	CompCol    string
+	Comparator series.Comparator
+}
+
 // Filter will filter the rows of a DataFrame based on the given filters. All
 // filters on the argument of a Filter call are aggregated as an OR operation
 // whereas if we chain Filter calls, every filter will act as an AND operation
@@ -483,6 +490,46 @@ func (df DataFrame) Filter(filters ...F) DataFrame {
 			return DataFrame{Err: fmt.Errorf("filter: can't find column name")}
 		}
 		res := df.columns[idx].Compare(f.Comparator, f.Comparando)
+		if err := res.Err; err != nil {
+			return DataFrame{Err: fmt.Errorf("filter: %v", err)}
+		}
+		compResults[i] = res
+	}
+	// Join compResults via "OR"
+	if len(compResults) == 0 {
+		return df.Copy()
+	}
+	res, err := compResults[0].Bool()
+	if err != nil {
+		return DataFrame{Err: fmt.Errorf("filter: %v", err)}
+	}
+	for i := 1; i < len(compResults); i++ {
+		nextRes, err := compResults[i].Bool()
+		if err != nil {
+			return DataFrame{Err: fmt.Errorf("filter: %v", err)}
+		}
+		for j := 0; j < len(res); j++ {
+			res[j] = res[j] || nextRes[j]
+		}
+	}
+	return df.Subset(res)
+}
+
+func (df DataFrame) CFilter(filters ...CF) DataFrame {
+	if df.Err != nil {
+		return df
+	}
+	compResults := make([]series.Series, len(filters))
+	for i, f := range filters {
+		idx := findInStringSlice(f.Colname, df.Names())
+		if idx < 0 {
+			return DataFrame{Err: fmt.Errorf("filter: can't find column name")}
+		}
+		compIdx := findInStringSlice(f.CompCol, df.Names())
+		if compIdx < 0 {
+			return DataFrame{Err: fmt.Errorf("filter: can't find compare column name")}
+		}
+		res := df.columns[idx].CompareSeries(f.Comparator, df.columns[compIdx])
 		if err := res.Err; err != nil {
 			return DataFrame{Err: fmt.Errorf("filter: %v", err)}
 		}
