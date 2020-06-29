@@ -114,7 +114,7 @@ func (e floatElement) Bool() (bool, error) {
 func (e floatElement) Eq(elem Element) bool {
 	f := elem.Float()
 	if e.IsNA() || math.IsNaN(f) {
-		return false
+		return e.IsNA() && math.IsNaN(f)
 	}
 	return e.e == f
 }
@@ -122,7 +122,7 @@ func (e floatElement) Eq(elem Element) bool {
 func (e floatElement) Neq(elem Element) bool {
 	f := elem.Float()
 	if e.IsNA() || math.IsNaN(f) {
-		return false
+		return !(e.IsNA() && math.IsNaN(f))
 	}
 	return e.e != f
 }
