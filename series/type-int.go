@@ -117,17 +117,25 @@ func (e intElement) Bool() (bool, error) {
 }
 
 func (e intElement) Eq(elem Element) bool {
+	if e.IsNA() && elem.IsNA() {
+		return true
+	}
 	i, err := elem.Int()
 	if err != nil || e.IsNA() {
-		return err != nil || e.IsNA()
+		return false
 	}
 	return e.e == i
 }
 
 func (e intElement) Neq(elem Element) bool {
+	if e.IsNA() && elem.IsNA() {
+		return false
+	}else if (e.IsNA() || elem.IsNA()) == true {
+		return true
+	}
 	i, err := elem.Int()
 	if err != nil || e.IsNA() {
-		return !(err != nil || e.IsNA())
+		return false
 	}
 	return e.e != i
 }

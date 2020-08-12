@@ -105,15 +105,23 @@ func (e stringElement) Bool() (bool, error) {
 }
 
 func (e stringElement) Eq(elem Element) bool {
+	if e.IsNA() && elem.IsNA() {
+		return true
+	}
 	if e.IsNA() || elem.IsNA() {
-		return e.IsNA() && elem.IsNA()
+		return false
 	}
 	return e.e == elem.String()
 }
 
 func (e stringElement) Neq(elem Element) bool {
+	if e.IsNA() && elem.IsNA() {
+		return false
+	}else if (e.IsNA() || elem.IsNA()) == true {
+		return true
+	}
 	if e.IsNA() || elem.IsNA() {
-		return !(e.IsNA() && elem.IsNA())
+		return false
 	}
 	return e.e != elem.String()
 }
